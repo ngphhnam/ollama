@@ -1,0 +1,95 @@
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDEs and editors
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.iml
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+build/
+.next/
+out/
+.cache/
+.cache-loader/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+coverage/
+coverage.xml
+htmlcov/
+*.egg-info/
+dist/
+build/
+venv/
+ENV/
+env/
+.venv/
+pip-log.txt
+
+# Java / JVM
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Go
+bin/
+pkg/
+
+# Ruby
+.bundle
+vendor/bundle
+*.gem
+
+# Logs
+logs/
+*.log
+
+# Environment and secrets
+.env
+.env.*.local
+.env.local
+.local
+secret-*.key
+
+# Database
+*.sqlite3
+*.db
+*.sql
+
+# Containers
+docker-compose.override.yml
+*.dockerignore
+
+# Build artifacts and temporary files
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+
+# Coverage and reports
+coverage/
+reports/
+
+# Misc
+*.DS_Store
+.idea/
