@@ -1,0 +1,438 @@
+{
+  "info": {
+    "name": "IELTS Generate API",
+    "description": "Collection để test API Generate của Ollama Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Specialized APIs",
+      "item": [
+        {
+          "name": "1. POST /api/generate/topics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partNumber\": 1,\n  \"difficultyLevel\": \"intermediate\",\n  \"count\": 5,\n  \"topicCategory\": \"daily life and hobbies\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/topics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "topics"]
+            },
+            "description": "Generate IELTS Speaking Part 1 topics với các câu hỏi liên quan (API chuyên biệt)"
+          },
+          "response": []
+        },
+        {
+          "name": "2. POST /api/generate/questions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partNumber\": 2,\n  \"difficultyLevel\": \"intermediate\",\n  \"topic\": \"Travel\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/questions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "questions"]
+            },
+            "description": "Generate IELTS Speaking Part 2 question với sample answer, vocabulary và structures (API chuyên biệt)"
+          },
+          "response": []
+        },
+        {
+          "name": "3. POST /api/generate/answers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Describe a memorable trip you have taken\",\n  \"partNumber\": 2,\n  \"targetBand\": 7.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/answers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "answers"]
+            },
+            "description": "Generate sample answer cho IELTS Speaking question với vocabulary và structures (API chuyên biệt)"
+          },
+          "response": []
+        },
+        {
+          "name": "4. POST /api/generate/structures",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What are the benefits of online learning?\",\n  \"partNumber\": 3,\n  \"targetBand\": 7.0,\n  \"count\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/structures",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "structures"]
+            },
+            "description": "Generate các cấu trúc câu hữu ích cho IELTS Speaking (API chuyên biệt)"
+          },
+          "response": []
+        },
+        {
+          "name": "5. POST /api/generate/vocabulary",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Describe a memorable trip you have taken\",\n  \"targetBand\": 7.0,\n  \"count\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/vocabulary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "vocabulary"]
+            },
+            "description": "Generate danh sách từ vựng với định nghĩa, ví dụ và hướng dẫn phát âm (API chuyên biệt)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Fallback API (Playground)",
+      "item": [
+        {
+          "name": "1. Generate Topics (Part 1) - Fallback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Generate 5 IELTS Speaking Part 1 topics about daily life and hobbies. Each topic should have 3-4 related questions.\",\n  \"task_type\": \"topics\",\n  \"context\": {\n    \"partNumber\": 1,\n    \"difficultyLevel\": \"intermediate\"\n  },\n  \"format\": {\n    \"topics\": [\n      {\n        \"name\": \"string\",\n        \"questions\": [\"string\"]\n      }\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate"]
+            },
+            "description": "Tạo IELTS Speaking Part 1 topics với các câu hỏi liên quan"
+          },
+          "response": []
+        },
+        {
+          "name": "2. Generate Questions with Answers (Part 2)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Generate an IELTS Speaking Part 2 cue card about 'Describe a memorable trip'. Include the question, sample answer, key vocabulary, and useful structures.\",\n  \"task_type\": \"questions\",\n  \"context\": {\n    \"partNumber\": 2,\n    \"difficultyLevel\": \"intermediate\",\n    \"topic\": \"Travel\"\n  },\n  \"format\": {\n    \"question\": \"string\",\n    \"sampleAnswer\": \"string\",\n    \"vocabulary\": [\"string\"],\n    \"structures\": [\"string\"]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate"]
+            },
+            "description": "Tạo IELTS Speaking Part 2 question với sample answer, vocabulary và structures"
+          },
+          "response": []
+        },
+        {
+          "name": "3. Generate Vocabulary List",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Generate a vocabulary list of 10 advanced words related to 'Education' with definitions, examples, and pronunciation guide.\",\n  \"task_type\": \"vocabulary\",\n  \"context\": {\n    \"topic\": \"Education\",\n    \"level\": \"advanced\",\n    \"count\": 10\n  },\n  \"format\": {\n    \"vocabulary\": [\n      {\n        \"word\": \"string\",\n        \"definition\": \"string\",\n        \"example\": \"string\",\n        \"pronunciation\": \"string\"\n      }\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate"]
+            },
+            "description": "Tạo danh sách từ vựng với định nghĩa, ví dụ và hướng dẫn phát âm"
+          },
+          "response": []
+        },
+        {
+          "name": "4. Generate Sentence Structures",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Generate 5 useful sentence structures for expressing opinions in IELTS Speaking Part 3, with examples.\",\n  \"task_type\": \"structures\",\n  \"context\": {\n    \"partNumber\": 3,\n    \"function\": \"expressing opinions\"\n  },\n  \"format\": {\n    \"structures\": [\n      {\n        \"pattern\": \"string\",\n        \"example\": \"string\",\n        \"usage\": \"string\"\n      }\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate"]
+            },
+            "description": "Tạo các cấu trúc câu hữu ích cho IELTS Speaking"
+          },
+          "response": []
+        },
+        {
+          "name": "5. Refine Speaking Response",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Refine and improve this IELTS speaking response while keeping the original meaning and style. Make it more natural and add advanced vocabulary:\\n\\n'I like travel. I go many places. It is fun. I see new things.'\",\n  \"task_type\": \"refine\",\n  \"context\": {\n    \"targetBand\": 7,\n    \"preserveStyle\": true\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate"]
+            },
+            "description": "Cải thiện và tinh chỉnh speaking response"
+          },
+          "response": []
+        },
+        {
+          "name": "6. Compare Two Versions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Compare these two IELTS speaking responses and highlight improvements:\\n\\nVersion 1: 'I like music. It is good. I listen every day.'\\n\\nVersion 2: 'I'm really passionate about music, and I listen to it on a daily basis. What I find most appealing is how it can evoke different emotions and help me relax after a long day.'\",\n  \"task_type\": \"compare\",\n  \"context\": {\n    \"focus\": \"vocabulary and grammar improvements\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate"]
+            },
+            "description": "So sánh hai phiên bản speaking response và chỉ ra các cải thiện"
+          },
+          "response": []
+        },
+        {
+          "name": "7. Generate Speaking Outline",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Create a speaking outline for IELTS Part 2 topic 'Describe a person who influenced you'. Include structure, key points, and useful phrases.\",\n  \"task_type\": \"outline\",\n  \"context\": {\n    \"partNumber\": 2,\n    \"topic\": \"Person\"\n  },\n  \"format\": {\n    \"structure\": {\n      \"introduction\": \"string\",\n      \"mainPoints\": [\"string\"],\n      \"conclusion\": \"string\"\n    },\n    \"usefulPhrases\": [\"string\"]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate"]
+            },
+            "description": "Tạo outline cho IELTS Speaking Part 2"
+          },
+          "response": []
+        },
+        {
+          "name": "8. General Content Generation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Write a short paragraph explaining the benefits of learning English for career development.\",\n  \"task_type\": \"general\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate"]
+            },
+            "description": "Tạo nội dung chung"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "System Endpoints",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Kiểm tra trạng thái service"
+          },
+          "response": []
+        },
+        {
+          "name": "Service Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/info",
+              "host": ["{{base_url}}"],
+              "path": ["info"]
+            },
+            "description": "Lấy thông tin về service"
+          },
+          "response": []
+        },
+        {
+          "name": "Reconnect Ollama",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reconnect",
+              "host": ["{{base_url}}"],
+              "path": ["reconnect"]
+            },
+            "description": "Thử kết nối lại với Ollama server"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    }
+  ]
+}
+

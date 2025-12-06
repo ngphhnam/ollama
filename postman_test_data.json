@@ -1,0 +1,440 @@
+{
+  "base_url": "http://localhost:8000",
+  "test_data": {
+    "scoring_endpoints": {
+      "score_basic": {
+        "endpoint": "POST /api/score",
+        "description": "Basic scoring request",
+        "request": {
+          "transcription": "I really enjoy traveling because it allows me to experience different cultures and meet new people. Last year, I visited Japan and it was an amazing experience. The food was delicious and the people were very friendly.",
+          "topic": "Travel",
+          "level": "intermediate"
+        }
+      },
+      "score_with_question": {
+        "endpoint": "POST /api/score",
+        "description": "Scoring with question text for relevance checking",
+        "request": {
+          "transcription": "I like music very much. I listen to pop songs every day. Music makes me happy and relaxed.",
+          "questionText": "What kind of music do you like?",
+          "topic": "Music",
+          "level": "beginner"
+        }
+      },
+      "score_advanced": {
+        "endpoint": "POST /api/score",
+        "description": "Advanced level scoring",
+        "request": {
+          "transcription": "I'm particularly fond of classical music, especially compositions from the Romantic period. I find that listening to works by composers like Chopin and Debussy helps me concentrate when I'm studying. The intricate melodies and harmonies create an atmosphere that's both stimulating and calming.",
+          "questionText": "What type of music do you enjoy listening to?",
+          "topic": "Music",
+          "level": "advanced"
+        }
+      },
+      "score_off_topic": {
+        "endpoint": "POST /api/score",
+        "description": "Test off-topic response (should be penalized)",
+        "request": {
+          "transcription": "I love playing football and watching sports on TV. My favorite team is Manchester United.",
+          "questionText": "What kind of music do you like?",
+          "topic": "Music",
+          "level": "intermediate"
+        }
+      }
+    },
+    "chat_endpoint": {
+      "chat_basic": {
+        "endpoint": "POST /api/chat",
+        "description": "Basic chat request",
+        "request": {
+          "model": "llama3.1:latest",
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are an expert IELTS speaking examiner. Always return valid JSON only."
+            },
+            {
+              "role": "user",
+              "content": "Evaluate this IELTS speaking response about travel: I really enjoy traveling because it allows me to experience different cultures and meet new people."
+            }
+          ]
+        }
+      }
+    },
+    "specialized_endpoints": {
+      "generate_topics_part1_basic": {
+        "endpoint": "POST /api/generate/topics",
+        "description": "Generate Part 1 topics - basic",
+        "request": {
+          "partNumber": 1,
+          "difficultyLevel": "intermediate",
+          "count": 5,
+          "topicCategory": "daily life and hobbies"
+        }
+      },
+      "generate_topics_part1_advanced": {
+        "endpoint": "POST /api/generate/topics",
+        "description": "Generate Part 1 topics - advanced",
+        "request": {
+          "partNumber": 1,
+          "difficultyLevel": "advanced",
+          "count": 8,
+          "topicCategory": "technology and innovation"
+        }
+      },
+      "generate_topics_part1_beginner": {
+        "endpoint": "POST /api/generate/topics",
+        "description": "Generate Part 1 topics - beginner",
+        "request": {
+          "partNumber": 1,
+          "difficultyLevel": "beginner",
+          "count": 3,
+          "topicCategory": "family and friends"
+        }
+      },
+      "generate_questions_part2_travel": {
+        "endpoint": "POST /api/generate/questions",
+        "description": "Generate Part 2 question about travel",
+        "request": {
+          "partNumber": 2,
+          "difficultyLevel": "intermediate",
+          "topic": "Travel"
+        }
+      },
+      "generate_questions_part2_education": {
+        "endpoint": "POST /api/generate/questions",
+        "description": "Generate Part 2 question about education",
+        "request": {
+          "partNumber": 2,
+          "difficultyLevel": "advanced",
+          "topic": "Education"
+        }
+      },
+      "generate_questions_part2_person": {
+        "endpoint": "POST /api/generate/questions",
+        "description": "Generate Part 2 question about a person",
+        "request": {
+          "partNumber": 2,
+          "difficultyLevel": "intermediate",
+          "topic": "Person"
+        }
+      },
+      "generate_answers_travel": {
+        "endpoint": "POST /api/generate/answers",
+        "description": "Generate answer for travel question",
+        "request": {
+          "question": "Describe a memorable trip you have taken",
+          "partNumber": 2,
+          "targetBand": 7.0
+        }
+      },
+      "generate_answers_education": {
+        "endpoint": "POST /api/generate/answers",
+        "description": "Generate answer for education question - band 8",
+        "request": {
+          "question": "Describe a teacher who influenced you",
+          "partNumber": 2,
+          "targetBand": 8.0
+        }
+      },
+      "generate_answers_band6": {
+        "endpoint": "POST /api/generate/answers",
+        "description": "Generate answer targeting band 6",
+        "request": {
+          "question": "Describe your favorite hobby",
+          "partNumber": 2,
+          "targetBand": 6.0
+        }
+      },
+      "generate_structures_part3": {
+        "endpoint": "POST /api/generate/structures",
+        "description": "Generate structures for Part 3 question",
+        "request": {
+          "question": "What are the benefits of online learning?",
+          "partNumber": 3,
+          "targetBand": 7.0,
+          "count": 5
+        }
+      },
+      "generate_structures_part3_advanced": {
+        "endpoint": "POST /api/generate/structures",
+        "description": "Generate advanced structures for Part 3",
+        "request": {
+          "question": "How has technology changed the way we communicate?",
+          "partNumber": 3,
+          "targetBand": 8.5,
+          "count": 8
+        }
+      },
+      "generate_vocabulary_travel": {
+        "endpoint": "POST /api/generate/vocabulary",
+        "description": "Generate vocabulary for travel topic",
+        "request": {
+          "question": "Describe a memorable trip you have taken",
+          "targetBand": 7.0,
+          "count": 10
+        }
+      },
+      "generate_vocabulary_education": {
+        "endpoint": "POST /api/generate/vocabulary",
+        "description": "Generate vocabulary for education topic - band 8",
+        "request": {
+          "question": "What are the advantages of studying abroad?",
+          "targetBand": 8.0,
+          "count": 15
+        }
+      }
+    },
+    "v2_endpoints_google_ai": {
+      "v2_generate_topics": {
+        "endpoint": "POST /api/v2/generate/topics",
+        "description": "Generate topics using Google AI (faster)",
+        "request": {
+          "partNumber": 1,
+          "difficultyLevel": "intermediate",
+          "count": 5,
+          "topicCategory": "work and career"
+        }
+      },
+      "v2_generate_questions": {
+        "endpoint": "POST /api/v2/generate/questions",
+        "description": "Generate questions using Google AI",
+        "request": {
+          "partNumber": 2,
+          "difficultyLevel": "intermediate",
+          "topic": "Environment"
+        }
+      },
+      "v2_generate_answers": {
+        "endpoint": "POST /api/v2/generate/answers",
+        "description": "Generate answers using Google AI",
+        "request": {
+          "question": "Describe a place you would like to visit",
+          "partNumber": 2,
+          "targetBand": 7.5
+        }
+      },
+      "v2_generate_structures": {
+        "endpoint": "POST /api/v2/generate/structures",
+        "description": "Generate structures using Google AI",
+        "request": {
+          "question": "What are the environmental challenges facing the world today?",
+          "partNumber": 3,
+          "targetBand": 7.0,
+          "count": 6
+        }
+      },
+      "v2_generate_vocabulary": {
+        "endpoint": "POST /api/v2/generate/vocabulary",
+        "description": "Generate vocabulary using Google AI",
+        "request": {
+          "question": "Describe a time when you helped someone",
+          "targetBand": 7.0,
+          "count": 12
+        }
+      }
+    },
+    "fallback_endpoint": {
+      "generate_topics_fallback": {
+        "endpoint": "POST /api/generate",
+        "description": "Generate topics using fallback endpoint",
+        "request": {
+          "prompt": "Generate 5 IELTS Speaking Part 1 topics about daily life and hobbies. Each topic should have 3-4 related questions.",
+          "task_type": "topics",
+          "context": {
+            "partNumber": 1,
+            "difficultyLevel": "intermediate"
+          }
+        }
+      },
+      "generate_questions_fallback": {
+        "endpoint": "POST /api/generate",
+        "description": "Generate questions using fallback endpoint",
+        "request": {
+          "prompt": "Generate an IELTS Speaking Part 2 cue card about 'Describe a memorable trip'. Include the question, sample answer, key vocabulary, and useful structures.",
+          "task_type": "questions",
+          "context": {
+            "partNumber": 2,
+            "difficultyLevel": "intermediate",
+            "topic": "Travel"
+          }
+        }
+      },
+      "refine_response": {
+        "endpoint": "POST /api/generate",
+        "description": "Refine a speaking response",
+        "request": {
+          "prompt": "Refine and improve this IELTS speaking response while keeping the original meaning and style. Make it more natural and add advanced vocabulary:\n\n'I like travel. I go many places. It is fun. I see new things.'",
+          "task_type": "refine",
+          "context": {
+            "targetBand": 7,
+            "preserveStyle": true
+          }
+        }
+      }
+    },
+    "system_endpoints": {
+      "health_check": {
+        "endpoint": "GET /health",
+        "description": "Check service health"
+      },
+      "info": {
+        "endpoint": "GET /info",
+        "description": "Get service information"
+      },
+      "root": {
+        "endpoint": "GET /",
+        "description": "Root endpoint - service status"
+      },
+      "reconnect": {
+        "endpoint": "POST /reconnect",
+        "description": "Reconnect to Ollama server"
+      }
+    }
+  },
+  "quick_test_scenarios": {
+    "scenario_1_complete_flow": {
+      "description": "Complete flow: Generate topic -> Generate question -> Generate answer -> Score response",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Generate Part 1 topics",
+          "endpoint": "POST /api/generate/topics",
+          "request": {
+            "partNumber": 1,
+            "difficultyLevel": "intermediate",
+            "count": 3,
+            "topicCategory": "hobbies"
+          }
+        },
+        {
+          "step": 2,
+          "action": "Generate Part 2 question",
+          "endpoint": "POST /api/generate/questions",
+          "request": {
+            "partNumber": 2,
+            "difficultyLevel": "intermediate",
+            "topic": "Hobbies"
+          }
+        },
+        {
+          "step": 3,
+          "action": "Generate sample answer",
+          "endpoint": "POST /api/generate/answers",
+          "request": {
+            "question": "Describe a hobby you enjoy",
+            "partNumber": 2,
+            "targetBand": 7.0
+          }
+        },
+        {
+          "step": 4,
+          "action": "Score the generated answer",
+          "endpoint": "POST /api/score",
+          "request": {
+            "transcription": "I'd like to talk about my hobby of photography. I've been interested in photography for about three years now, and I find it incredibly rewarding. What I enjoy most is capturing moments and seeing the world from different perspectives through my camera lens.",
+            "questionText": "Describe a hobby you enjoy",
+            "topic": "Hobbies",
+            "level": "intermediate"
+          }
+        }
+      ]
+    },
+    "scenario_2_vocabulary_learning": {
+      "description": "Generate question -> Get vocabulary -> Get structures",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Generate Part 2 question",
+          "endpoint": "POST /api/generate/questions",
+          "request": {
+            "partNumber": 2,
+            "difficultyLevel": "intermediate",
+            "topic": "Education"
+          }
+        },
+        {
+          "step": 2,
+          "action": "Get vocabulary list",
+          "endpoint": "POST /api/generate/vocabulary",
+          "request": {
+            "question": "Describe a teacher who influenced you",
+            "targetBand": 7.0,
+            "count": 10
+          }
+        },
+        {
+          "step": 3,
+          "action": "Get sentence structures",
+          "endpoint": "POST /api/generate/structures",
+          "request": {
+            "question": "Describe a teacher who influenced you",
+            "partNumber": 2,
+            "targetBand": 7.0,
+            "count": 5
+          }
+        }
+      ]
+    },
+    "scenario_3_different_levels": {
+      "description": "Test same topic at different difficulty levels",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Beginner level question",
+          "endpoint": "POST /api/generate/questions",
+          "request": {
+            "partNumber": 2,
+            "difficultyLevel": "beginner",
+            "topic": "Travel"
+          }
+        },
+        {
+          "step": 2,
+          "action": "Intermediate level question",
+          "endpoint": "POST /api/generate/questions",
+          "request": {
+            "partNumber": 2,
+            "difficultyLevel": "intermediate",
+            "topic": "Travel"
+          }
+        },
+        {
+          "step": 3,
+          "action": "Advanced level question",
+          "endpoint": "POST /api/generate/questions",
+          "request": {
+            "partNumber": 2,
+            "difficultyLevel": "advanced",
+            "topic": "Travel"
+          }
+        }
+      ]
+    }
+  },
+  "common_topics": [
+    "Travel",
+    "Education",
+    "Work",
+    "Hobbies",
+    "Family",
+    "Food",
+    "Music",
+    "Sports",
+    "Technology",
+    "Environment",
+    "Health",
+    "Culture",
+    "Shopping",
+    "Transportation",
+    "Entertainment"
+  ],
+  "difficulty_levels": [
+    "beginner",
+    "intermediate",
+    "advanced"
+  ],
+  "target_bands": [6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0],
+  "part_numbers": [1, 2, 3]
+}
+

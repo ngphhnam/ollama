@@ -1,0 +1,718 @@
+{
+  "info": {
+    "name": "IELTS API - Complete Test Collection",
+    "description": "Complete collection with all test data examples for IELTS Llama Service API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Scoring Endpoints",
+      "item": [
+        {
+          "name": "1. Score - Basic (Intermediate)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transcription\": \"I really enjoy traveling because it allows me to experience different cultures and meet new people. Last year, I visited Japan and it was an amazing experience. The food was delicious and the people were very friendly.\",\n  \"topic\": \"Travel\",\n  \"level\": \"intermediate\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/score",
+              "host": ["{{base_url}}"],
+              "path": ["api", "score"]
+            },
+            "description": "Basic scoring request for intermediate level"
+          }
+        },
+        {
+          "name": "2. Score - With Question (Beginner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transcription\": \"I like music very much. I listen to pop songs every day. Music makes me happy and relaxed.\",\n  \"questionText\": \"What kind of music do you like?\",\n  \"topic\": \"Music\",\n  \"level\": \"beginner\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/score",
+              "host": ["{{base_url}}"],
+              "path": ["api", "score"]
+            },
+            "description": "Scoring with question text for relevance checking"
+          }
+        },
+        {
+          "name": "3. Score - Advanced Level",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transcription\": \"I'm particularly fond of classical music, especially compositions from the Romantic period. I find that listening to works by composers like Chopin and Debussy helps me concentrate when I'm studying. The intricate melodies and harmonies create an atmosphere that's both stimulating and calming.\",\n  \"questionText\": \"What type of music do you enjoy listening to?\",\n  \"topic\": \"Music\",\n  \"level\": \"advanced\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/score",
+              "host": ["{{base_url}}"],
+              "path": ["api", "score"]
+            },
+            "description": "Advanced level scoring test"
+          }
+        },
+        {
+          "name": "4. Score - Off-Topic Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transcription\": \"I love playing football and watching sports on TV. My favorite team is Manchester United.\",\n  \"questionText\": \"What kind of music do you like?\",\n  \"topic\": \"Music\",\n  \"level\": \"intermediate\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/score",
+              "host": ["{{base_url}}"],
+              "path": ["api", "score"]
+            },
+            "description": "Test off-topic response (should be penalized)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat Endpoint",
+      "item": [
+        {
+          "name": "Chat - Basic",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"llama3.1:latest\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an expert IELTS speaking examiner. Always return valid JSON only.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Evaluate this IELTS speaking response about travel: I really enjoy traveling because it allows me to experience different cultures and meet new people.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat"]
+            },
+            "description": "Basic chat request"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Generate Topics",
+      "item": [
+        {
+          "name": "Topics - Part 1 Basic",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partNumber\": 1,\n  \"difficultyLevel\": \"intermediate\",\n  \"count\": 5,\n  \"topicCategory\": \"daily life and hobbies\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/topics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "topics"]
+            }
+          }
+        },
+        {
+          "name": "Topics - Part 1 Advanced",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partNumber\": 1,\n  \"difficultyLevel\": \"advanced\",\n  \"count\": 8,\n  \"topicCategory\": \"technology and innovation\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/topics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "topics"]
+            }
+          }
+        },
+        {
+          "name": "Topics - Part 1 Beginner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partNumber\": 1,\n  \"difficultyLevel\": \"beginner\",\n  \"count\": 3,\n  \"topicCategory\": \"family and friends\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/topics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "topics"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Generate Questions",
+      "item": [
+        {
+          "name": "Questions - Part 2 Travel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partNumber\": 2,\n  \"difficultyLevel\": \"intermediate\",\n  \"topic\": \"Travel\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/questions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "questions"]
+            }
+          }
+        },
+        {
+          "name": "Questions - Part 2 Education",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partNumber\": 2,\n  \"difficultyLevel\": \"advanced\",\n  \"topic\": \"Education\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/questions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "questions"]
+            }
+          }
+        },
+        {
+          "name": "Questions - Part 2 Person",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partNumber\": 2,\n  \"difficultyLevel\": \"intermediate\",\n  \"topic\": \"Person\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/questions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "questions"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Generate Answers",
+      "item": [
+        {
+          "name": "Answers - Travel (Band 7.0)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Describe a memorable trip you have taken\",\n  \"partNumber\": 2,\n  \"targetBand\": 7.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/answers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "answers"]
+            }
+          }
+        },
+        {
+          "name": "Answers - Education (Band 8.0)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Describe a teacher who influenced you\",\n  \"partNumber\": 2,\n  \"targetBand\": 8.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/answers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "answers"]
+            }
+          }
+        },
+        {
+          "name": "Answers - Hobby (Band 6.0)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Describe your favorite hobby\",\n  \"partNumber\": 2,\n  \"targetBand\": 6.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/answers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "answers"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Generate Structures",
+      "item": [
+        {
+          "name": "Structures - Part 3 (Band 7.0)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What are the benefits of online learning?\",\n  \"partNumber\": 3,\n  \"targetBand\": 7.0,\n  \"count\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/structures",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "structures"]
+            }
+          }
+        },
+        {
+          "name": "Structures - Part 3 Advanced (Band 8.5)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"How has technology changed the way we communicate?\",\n  \"partNumber\": 3,\n  \"targetBand\": 8.5,\n  \"count\": 8\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/structures",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "structures"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Generate Vocabulary",
+      "item": [
+        {
+          "name": "Vocabulary - Travel (Band 7.0)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Describe a memorable trip you have taken\",\n  \"targetBand\": 7.0,\n  \"count\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/vocabulary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "vocabulary"]
+            }
+          }
+        },
+        {
+          "name": "Vocabulary - Education (Band 8.0)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What are the advantages of studying abroad?\",\n  \"targetBand\": 8.0,\n  \"count\": 15\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/generate/vocabulary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "generate", "vocabulary"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Google AI (v2) Endpoints",
+      "item": [
+        {
+          "name": "v2 Topics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partNumber\": 1,\n  \"difficultyLevel\": \"intermediate\",\n  \"count\": 5,\n  \"topicCategory\": \"work and career\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v2/generate/topics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "generate", "topics"]
+            },
+            "description": "Generate topics using Google AI (faster)"
+          }
+        },
+        {
+          "name": "v2 Questions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partNumber\": 2,\n  \"difficultyLevel\": \"intermediate\",\n  \"topic\": \"Environment\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v2/generate/questions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "generate", "questions"]
+            }
+          }
+        },
+        {
+          "name": "v2 Answers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Describe a place you would like to visit\",\n  \"partNumber\": 2,\n  \"targetBand\": 7.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v2/generate/answers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "generate", "answers"]
+            }
+          }
+        },
+        {
+          "name": "v2 Structures",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What are the environmental challenges facing the world today?\",\n  \"partNumber\": 3,\n  \"targetBand\": 7.0,\n  \"count\": 6\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v2/generate/structures",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "generate", "structures"]
+            }
+          }
+        },
+        {
+          "name": "v2 Vocabulary",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Describe a time when you helped someone\",\n  \"targetBand\": 7.0,\n  \"count\": 12\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v2/generate/vocabulary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "generate", "vocabulary"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "System Endpoints",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check service health"
+          }
+        },
+        {
+          "name": "Service Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/info",
+              "host": ["{{base_url}}"],
+              "path": ["info"]
+            },
+            "description": "Get service information"
+          }
+        },
+        {
+          "name": "Root",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            },
+            "description": "Root endpoint - service status"
+          }
+        },
+        {
+          "name": "Reconnect Ollama",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reconnect",
+              "host": ["{{base_url}}"],
+              "path": ["reconnect"]
+            },
+            "description": "Reconnect to Ollama server"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    }
+  ]
+}
+
