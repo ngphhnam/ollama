@@ -417,3 +417,4 @@ Test the same topic at different levels:
 - **Invalid JSON Response**: The API tries to extract JSON from responses automatically
 - **Slow Responses**: Use v2 endpoints (Google AI) for faster generation
 
+
