@@ -277,7 +277,7 @@ Return JSON in this exact format:
         )
 
 
-@router.post("/generate/answers", response_model=AnswersResponse)
+@router.post("/generate/answers")
 async def generate_answers(request: AnswersRequest):
     """Generate sample answers for IELTS Speaking questions (v2 - Google AI Studio)"""
     try:
@@ -338,18 +338,16 @@ Return JSON in this exact format (use these exact field names):
         if "sample_answer" in result and "answer" not in result:
             result["answer"] = result["sample_answer"]
         
-        # Validate and return
-        required_fields = ["answer", "vocabulary", "structures"]
-        missing_fields = [field for field in required_fields if field not in result]
-        
-        if missing_fields:
+        # Validate that answer field exists
+        if "answer" not in result:
             returned_fields = list(result.keys())
             raise HTTPException(
                 status_code=500, 
-                detail=f"Invalid response format: missing fields {missing_fields}. Returned fields: {returned_fields}. Response preview: {str(result)[:500]}"
+                detail=f"Invalid response format: missing 'answer' field. Returned fields: {returned_fields}. Response preview: {str(result)[:500]}"
             )
         
-        return AnswersResponse(**result)
+        # Return only the answer field
+        return {"answer": result["answer"]}
         
     except HTTPException:
         raise
