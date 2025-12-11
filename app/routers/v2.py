@@ -626,137 +626,296 @@ async def correct_grammar(request: GrammarCorrectionRequest):
     ```
     """
     try:
+        # Validate input
+        if not request.transcription or request.transcription.strip() == "":
+            raise HTTPException(
+                status_code=400,
+                detail="Transcription cannot be empty"
+            )
+        
+        transcription = request.transcription.strip()
+        
         # Build prompt
         question_context = ""
-        if request.textQuestion:
-            question_context = f"\n\nContext/Question: {request.textQuestion}"
+        if request.textQuestion and request.textQuestion.strip():
+            question_context = f"\n\nContext/Question: {request.textQuestion.strip()}"
         
-        user_prompt = f"""You are an expert English grammar teacher. Correct ALL grammar errors in the following transcription in {request.language or 'English'}:
+        user_prompt = f"""You are an expert English grammar teacher. Your task is to correct ALL grammar errors in the COMPLETE transcription provided below.
 
-TRANSCRIPTION TO CORRECT:
-{request.transcription}{question_context}
+TRANSCRIPTION TO CORRECT (you must process ALL of it):
+{transcription}{question_context}
 
-CRITICAL REQUIREMENTS - You MUST:
-1. Fix ALL grammatical errors including:
+CRITICAL REQUIREMENTS - You MUST follow ALL these rules:
+
+1. FIX ALL grammatical errors in the ENTIRE transcription including:
    - Subject-verb agreement errors
-   - Wrong verb tenses
+   - Wrong verb tenses (past, present, future)
    - Missing or incorrect articles (a, an, the)
-   - Incorrect prepositions
-   - Punctuation errors (periods, commas, etc.)
+   - Incorrect prepositions (for, to, at, in, on, etc.)
+   - Punctuation errors (periods, commas, apostrophes, etc.)
    - Word repetition and redundancy
    - Sentence structure issues
    - Unnatural word order
    - Missing or incorrect conjunctions
+   - Spelling errors
 
-2. Process the ENTIRE transcription - do not skip any part
-3. Maintain the original meaning and context
+2. Process the COMPLETE transcription - do not truncate or skip any part
+3. Maintain the EXACT original meaning and context
 4. Keep the same style and tone (informal/formal)
-5. Make the corrected version natural and fluent
-6. List EVERY correction made in the corrections array
+5. Make the corrected version natural, fluent, and native-like
+6. Document EVERY single correction made in the corrections array
+7. ALWAYS return complete, valid JSON with ALL required fields
 
-Return JSON in this EXACT format:
+Return JSON in this EXACT format with NO ADDITIONAL TEXT:
 {{
-    "original": "the complete original transcription exactly as provided",
+    "original": "the complete original transcription exactly as provided above",
     "corrected": "the complete corrected version with ALL errors fixed",
     "corrections": [
         {{
             "original": "exact incorrect word/phrase from original",
             "corrected": "corrected word/phrase",
-            "reason": "brief explanation (e.g., 'Removed redundant article', 'Fixed verb tense', 'Corrected punctuation')"
-        }},
-        {{
-            "original": "another incorrect part",
-            "corrected": "corrected version",
-            "reason": "explanation"
+            "reason": "brief explanation"
         }}
     ],
-    "explanation": "A brief summary of all corrections made (e.g., 'Fixed punctuation, removed redundant words, corrected verb tense')"
+    "explanation": "A comprehensive summary of all corrections made"
 }}
 
-EXAMPLES OF COMMON ERRORS TO FIX:
-- "Yes. I" → "Yes, I" (period should be comma)
-- "I have an experience" → "I have experience" (remove unnecessary article)
-- "I for example, I" → "For example, I" (remove redundant pronoun)
-- "studied for English" → "studied English" (remove incorrect preposition)
-- "Well, I for example, I" → "For example, I" (remove redundancy)
+EXAMPLES OF CORRECTIONS:
+- "Yes. I like it" → "Yes, I like it" (Fixed punctuation - period should be comma)
+- "I have an experience" → "I have experience" (Removed unnecessary article)
+- "Well, I for example, I" → "Well, for example, I" (Removed redundant pronoun)
+- "studied for English" → "studied English" (Removed incorrect preposition)
+- "I go yesterday" → "I went yesterday" (Fixed verb tense)
 
-IMPORTANT: 
-- Return ONLY valid JSON, no additional text before or after
-- The "original" field MUST be the EXACT original transcription
-- The "corrected" field MUST have ALL errors fixed
-- The "corrections" array MUST list EVERY correction (at least one entry per error type)
-- If no corrections are needed, corrections array should be empty [] and explanation should state "No corrections needed"
-- ALWAYS include both "corrections" array and "explanation" field"""
+MANDATORY VALIDATION RULES:
+1. The "original" field MUST contain the COMPLETE original transcription (not truncated)
+2. The "corrected" field MUST contain the COMPLETE corrected version (same length or similar)
+3. The "corrections" array MUST be a valid array (can be empty [] if no corrections)
+4. The "explanation" field MUST be a non-empty string describing what was changed
+5. If NO corrections are needed, return: corrections=[], explanation="No corrections needed. The transcription is grammatically correct."
+6. Return ONLY valid JSON - no text before or after the JSON object"""
         
-        system_message = "You are an expert English grammar teacher specializing in correcting spoken English transcriptions. You must identify and fix ALL grammatical errors while preserving the original meaning. Return ONLY valid JSON format with no additional text."
+        system_message = f"You are an expert English grammar teacher specializing in correcting spoken {request.language or 'English'} transcriptions. Your job is to identify and fix ALL grammatical errors while preserving the original meaning. You MUST return ONLY valid JSON format with no additional text before or after. Ensure the response contains the complete original and corrected text, not truncated versions."
         
-        # Increase max_output_tokens to handle longer sentences and detailed corrections
-        response_text = google_ai_service.generate(
-            system_message=system_message,
-            user_prompt=user_prompt,
-            temperature=0.3,
-            max_output_tokens=2048  # Increased from 1024 to handle longer responses
-        )
+        # Calculate appropriate max_output_tokens based on input length
+        # Rule: output should be at least 2x input length to allow for complete correction + metadata
+        input_length = len(transcription)
+        min_tokens = 3072  # Increased minimum
+        estimated_tokens = max(min_tokens, int(input_length * 3.5))  # Increased multiplier
+        max_tokens = min(estimated_tokens, 8192)  # Cap at model limit
         
-        result = extract_json_from_generate_response(response_text)
+        # Retry logic for incomplete responses
+        max_retries = 2
+        result = None
+        last_error = None
         
-        # Validate required fields
+        for attempt in range(max_retries + 1):
+            try:
+                # Adjust prompt for retry attempts
+                current_prompt = user_prompt
+                if attempt > 0:
+                    current_prompt = f"""RETRY ATTEMPT {attempt + 1}: The previous response was incomplete or truncated.
+You MUST return the COMPLETE corrected text, not a truncated version.
+
+{user_prompt}"""
+                
+                response_text = google_ai_service.generate(
+                    system_message=system_message,
+                    user_prompt=current_prompt,
+                    temperature=0.2 if attempt == 0 else 0.3,  # Slightly higher temp on retry
+                    max_output_tokens=max_tokens
+                )
+                
+                # Extract JSON from response
+                result = extract_json_from_generate_response(response_text)
+                
+                # Quick validation - check if corrected text seems complete
+                if result.get("corrected") and len(result["corrected"]) >= len(transcription) * 0.6:
+                    # Response seems complete enough
+                    break
+                else:
+                    # Response seems incomplete, try again
+                    if attempt < max_retries:
+                        corrected_len = len(result.get("corrected", ""))
+                        last_error = f"Incomplete response on attempt {attempt + 1}: corrected text only {corrected_len} chars"
+                        continue
+                    
+            except Exception as e:
+                last_error = str(e)
+                if attempt < max_retries:
+                    continue
+                else:
+                    raise
+        
+        if result is None:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to get complete response after {max_retries + 1} attempts. Last error: {last_error}"
+            )
+        
+        # VALIDATION STEP 1: Check for required fields
         required_fields = ["original", "corrected"]
         missing_fields = [field for field in required_fields if field not in result]
         
         if missing_fields:
-            returned_fields = list(result.keys())
             raise HTTPException(
                 status_code=500,
-                detail=f"Invalid response format: missing fields {missing_fields}. Returned fields: {returned_fields}"
+                detail=f"AI response missing required fields: {missing_fields}. This is an internal error. Please try again."
             )
         
-        # Ensure original and corrected are set
-        if "original" not in result:
-            result["original"] = request.transcription
+        # VALIDATION STEP 2: Ensure all fields are proper types and not null
+        # Handle original field
+        if not result.get("original") or not isinstance(result["original"], str):
+            result["original"] = transcription
         else:
-            # Ensure original matches the input (case-insensitive comparison for validation)
-            if result["original"].strip().lower() != request.transcription.strip().lower():
-                # If original doesn't match, use the input transcription
-                result["original"] = request.transcription
+            # Ensure original is not truncated
+            result["original"] = result["original"].strip()
+            if len(result["original"]) < len(transcription) * 0.8:
+                # Original seems truncated, use input transcription
+                result["original"] = transcription
         
-        if "corrected" not in result:
-            result["corrected"] = request.transcription
+        # Handle corrected field
+        if not result.get("corrected") or not isinstance(result["corrected"], str):
+            # If corrected is missing or invalid, use original
+            result["corrected"] = transcription
+        else:
+            result["corrected"] = result["corrected"].strip()
         
-        # Ensure corrections is always a list (not null)
+        # VALIDATION STEP 3: Ensure corrections is always a valid list
         if "corrections" not in result or result["corrections"] is None:
             result["corrections"] = []
+        elif not isinstance(result["corrections"], list):
+            # If corrections is not a list, convert to empty list
+            result["corrections"] = []
+        else:
+            # Validate each correction item
+            valid_corrections = []
+            for correction in result["corrections"]:
+                if isinstance(correction, dict):
+                    # Ensure all correction fields are strings
+                    if "original" in correction and "corrected" in correction and "reason" in correction:
+                        valid_corrections.append({
+                            "original": str(correction.get("original", "")),
+                            "corrected": str(correction.get("corrected", "")),
+                            "reason": str(correction.get("reason", ""))
+                        })
+            result["corrections"] = valid_corrections
         
-        # Ensure explanation is always a string (not null)
-        if "explanation" not in result or result["explanation"] is None:
-            result["explanation"] = ""
-        
-        # Validate that corrected text is reasonable (not too short compared to original)
-        original_len = len(result.get("original", ""))
-        corrected_len = len(result.get("corrected", ""))
-        
-        # If corrected is significantly shorter, it might be incomplete
-        if original_len > 20 and corrected_len < original_len * 0.5:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Corrected text appears incomplete. Original length: {original_len} chars, Corrected length: {corrected_len} chars. Please ensure the AI processes the ENTIRE transcription."
-            )
-        
-        # If no corrections were made, add a note in explanation
-        if result["corrections"] == [] and result["explanation"] == "":
-            if result["original"] == result["corrected"]:
-                result["explanation"] = "No corrections were needed. The sentence is grammatically correct."
+        # VALIDATION STEP 4: Ensure explanation is always a non-empty string
+        if "explanation" not in result or result["explanation"] is None or not isinstance(result["explanation"], str):
+            # Generate explanation based on corrections
+            if len(result["corrections"]) > 0:
+                result["explanation"] = f"Made {len(result['corrections'])} correction(s) to improve grammar and clarity."
+            elif result["original"] != result["corrected"]:
+                result["explanation"] = "Made minor adjustments to improve grammar and naturalness."
             else:
-                result["explanation"] = "Minor formatting or punctuation adjustments were made."
+                result["explanation"] = "No corrections needed. The transcription is grammatically correct."
+        else:
+            result["explanation"] = result["explanation"].strip()
+            if not result["explanation"]:
+                # Empty explanation
+                if len(result["corrections"]) > 0:
+                    result["explanation"] = f"Made {len(result['corrections'])} correction(s) to improve grammar."
+                elif result["original"] != result["corrected"]:
+                    result["explanation"] = "Made minor adjustments for better grammar."
+                else:
+                    result["explanation"] = "No corrections needed. The transcription is grammatically correct."
         
-        return GrammarCorrectionResponse(**result)
+        # VALIDATION STEP 5: Check for completeness - corrected text should not be too short
+        original_len = len(result["original"])
+        corrected_len = len(result["corrected"])
+        
+        # If corrected is significantly shorter than original (>40% shorter), it might be truncated
+        if original_len > 30 and corrected_len < original_len * 0.6:
+            # Try one more time with a simplified prompt
+            try:
+                simplified_prompt = f"""Fix the grammar errors in this text and return the COMPLETE corrected version:
+
+TEXT: {transcription}
+
+Return ONLY JSON:
+{{
+    "original": "full original text",
+    "corrected": "full corrected text",
+    "corrections": [],
+    "explanation": "summary of changes"
+}}
+
+The corrected text MUST be the SAME LENGTH or longer than the original. Do not truncate."""
+                
+                response_text = google_ai_service.generate(
+                    system_message="You are a grammar correction expert. Return ONLY complete, valid JSON.",
+                    user_prompt=simplified_prompt,
+                    temperature=0.1,
+                    max_output_tokens=max_tokens
+                )
+                
+                fallback_result = extract_json_from_generate_response(response_text)
+                
+                # Check if fallback is better
+                if fallback_result.get("corrected") and len(fallback_result["corrected"]) >= original_len * 0.6:
+                    result = fallback_result
+                    # Re-validate this result below
+                else:
+                    # Even fallback failed, return original as corrected
+                    result["corrected"] = transcription
+                    result["corrections"] = []
+                    result["explanation"] = "Unable to process corrections. Returning original text unchanged."
+                    
+            except:
+                # Fallback failed, return original as corrected
+                result["corrected"] = transcription
+                result["corrections"] = []
+                result["explanation"] = "Unable to process corrections. Returning original text unchanged."
+            
+            # Recalculate lengths after potential fallback
+            corrected_len = len(result["corrected"])
+        
+        # VALIDATION STEP 6: Final consistency check
+        # If corrections array is not empty but explanation says no corrections, fix it
+        if len(result["corrections"]) > 0 and "no correction" in result["explanation"].lower():
+            result["explanation"] = f"Made {len(result['corrections'])} correction(s) including grammar, punctuation, and style improvements."
+        
+        # If original and corrected are the same but there are corrections listed, this is inconsistent
+        if result["original"] == result["corrected"] and len(result["corrections"]) > 0:
+            # Clear corrections since nothing actually changed
+            result["corrections"] = []
+            result["explanation"] = "No corrections needed. The transcription is grammatically correct."
+        
+        # FINAL SAFETY CHECK: Ensure all required fields are present and valid
+        final_result = {
+            "original": str(result.get("original", transcription)),
+            "corrected": str(result.get("corrected", transcription)),
+            "corrections": result.get("corrections", []) if isinstance(result.get("corrections"), list) else [],
+            "explanation": str(result.get("explanation", "Grammar correction completed.")) if result.get("explanation") else "Grammar correction completed."
+        }
+        
+        # Ensure strings are not empty
+        if not final_result["original"]:
+            final_result["original"] = transcription
+        if not final_result["corrected"]:
+            final_result["corrected"] = transcription
+        if not final_result["explanation"]:
+            if len(final_result["corrections"]) > 0:
+                final_result["explanation"] = f"Made {len(final_result['corrections'])} correction(s)."
+            else:
+                final_result["explanation"] = "No corrections needed."
+        
+        # Return validated response
+        return GrammarCorrectionResponse(**final_result)
         
     except HTTPException:
         raise
     except Exception as e:
+        # Log the error details for debugging
+        error_detail = f"Error correcting grammar: {str(e)}"
+        if hasattr(e, '__traceback__'):
+            import traceback
+            error_detail += f"\n{traceback.format_exc()}"
+        
         raise HTTPException(
             status_code=500,
-            detail=f"Error correcting grammar: {str(e)}"
+            detail=error_detail
         )
 
 
