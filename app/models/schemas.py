@@ -19,6 +19,7 @@ class ScoreRequest(BaseModel):
     questionText: Optional[str] = None
     topic: Optional[str] = "General"
     level: Optional[str] = "intermediate"
+    includeGrammarCorrection: Optional[bool] = True  # Automatically include grammar correction when errors detected
 
 
 class QuestionItem(BaseModel):

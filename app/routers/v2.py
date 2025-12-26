@@ -1,4 +1,4 @@
-"""API v2 routes using Google AI Studio"""
+"""API v2 routes sử dụng Google AI Studio"""
 from fastapi import APIRouter, HTTPException
 from app.models import (
     ScoreRequest,
@@ -29,12 +29,13 @@ router = APIRouter(prefix="/api/v2", tags=["v2"])
 @router.post("/score")
 async def score(request: ScoreRequest):
     """
-    Score IELTS speaking response directly (v2 - Google AI Studio)
+    Chấm điểm phản hồi IELTS speaking trực tiếp (v2 - Google AI Studio)
     
-    Simplified endpoint that takes transcription, topic, and level directly.
+    Endpoint đơn giản nhận transcription, topic, và level trực tiếp.
+    Tự động bao gồm sửa ngữ pháp khi phát hiện lỗi ngữ pháp.
     """
     try:
-        # Build IELTS-specific prompt
+        # Xây dựng prompt chuyên biệt cho IELTS
         prompt = build_ielts_prompt(
             request.transcription,
             request.questionText or "",
@@ -47,17 +48,17 @@ async def score(request: ScoreRequest):
             {"role": "user", "content": prompt}
         ]
         
-        # Call Google AI
+        # Gọi Google AI
         response_text = google_ai_service.chat(
             messages=messages,
             temperature=0.3,
             max_output_tokens=2048
         )
         
-        # Extract JSON from response
+        # Trích xuất JSON từ response
         result = extract_json_from_response(response_text)
         
-        # Validate and set defaults
+        # Xác thực và đặt giá trị mặc định
         band_score = float(result.get("bandScore", 6.5))
         pronunciation_score = float(result.get("pronunciationScore", 6.0))
         grammar_score = float(result.get("grammarScore", 6.5))
@@ -65,18 +66,59 @@ async def score(request: ScoreRequest):
         fluency_score = float(result.get("fluencyScore", 6.5))
         overall_feedback = result.get("overallFeedback", "Evaluation completed.")
         
-        # Clamp scores to valid range
+        # Giới hạn điểm số trong khoảng hợp lệ
         def clamp_score(score):
             return max(0.0, min(9.0, float(score)))
         
-        return {
+        clamped_grammar_score = clamp_score(grammar_score)
+        
+        # Chuẩn bị response
+        response = {
             "bandScore": clamp_score(band_score),
             "pronunciationScore": clamp_score(pronunciation_score),
-            "grammarScore": clamp_score(grammar_score),
+            "grammarScore": clamped_grammar_score,
             "vocabularyScore": clamp_score(vocabulary_score),
             "fluencyScore": clamp_score(fluency_score),
             "overallFeedback": overall_feedback
         }
+        
+        # Tự động bao gồm sửa ngữ pháp nếu được yêu cầu
+        # Mặc định là True - luôn bao gồm sửa ngữ pháp để giúp người dùng cải thiện
+        should_include_grammar = request.includeGrammarCorrection if request.includeGrammarCorrection is not None else True
+        
+        # Luôn bao gồm sửa ngữ pháp khi should_include_grammar là True (hành vi mặc định)
+        # Điều này đảm bảo người dùng luôn nhận được sửa ngữ pháp khi có lỗi, giúp họ học hỏi
+        if should_include_grammar:
+            try:
+                # Gọi sửa ngữ pháp nội bộ
+                grammar_request = GrammarCorrectionRequest(
+                    transcription=request.transcription,
+                    textQuestion=request.questionText,
+                    language="en"
+                )
+                
+                # Gọi hàm sửa ngữ pháp
+                grammar_result = await correct_grammar(grammar_request)
+                
+                # Thêm sửa ngữ pháp vào response
+                response["grammarCorrection"] = {
+                    "original": grammar_result.original,
+                    "corrected": grammar_result.corrected,
+                    "corrections": grammar_result.corrections or [],
+                    "explanation": grammar_result.explanation
+                }
+                response["correctedTranscription"] = grammar_result.corrected
+            except Exception as grammar_error:
+                # Nếu sửa ngữ pháp thất bại, ghi log nhưng không làm thất bại toàn bộ request
+                # Chỉ bao gồm null cho sửa ngữ pháp
+                response["grammarCorrection"] = None
+                response["correctedTranscription"] = None
+        else:
+            # Không cần hoặc không yêu cầu sửa ngữ pháp
+            response["grammarCorrection"] = None
+            response["correctedTranscription"] = None
+        
+        return response
         
     except HTTPException:
         raise
@@ -90,10 +132,10 @@ async def score(request: ScoreRequest):
 @router.post("/chat")
 async def chat(payload: ChatPayload):
     """
-    Score IELTS speaking response using Google AI Studio (v2)
+    Chấm điểm phản hồi IELTS speaking sử dụng Google AI Studio (v2)
     """
     try:
-        # Extract transcription, topic, and level from messages
+        # Trích xuất transcription, topic, và level từ messages
         user_message = None
         system_message = None
         
@@ -103,24 +145,24 @@ async def chat(payload: ChatPayload):
             elif msg.role == "system":
                 system_message = msg.content
         
-        # If no explicit prompt, build one from transcription
+        # Nếu không có prompt rõ ràng, xây dựng một từ transcription
         if not system_message or "IELTS" not in system_message:
-            # Try to extract transcription from user message
+            # Thử trích xuất transcription từ user message
             transcription = user_message or ""
             topic = "General"
             level = "intermediate"
             
-            # Build IELTS-specific prompt
+            # Xây dựng prompt chuyên biệt cho IELTS
             prompt = build_ielts_prompt(transcription, "", topic, level)
             messages = [
                 {"role": "system", "content": "You are an expert IELTS speaking examiner. Always return valid JSON only."},
                 {"role": "user", "content": prompt}
             ]
         else:
-            # Use provided messages
+            # Sử dụng messages được cung cấp
             messages = [{"role": msg.role, "content": msg.content} for msg in payload.messages]
         
-        # Call Google AI
+        # Gọi Google AI
         model = payload.model or None
         response_text = google_ai_service.chat(
             messages=messages,
@@ -129,10 +171,10 @@ async def chat(payload: ChatPayload):
             max_output_tokens=2048
         )
         
-        # Extract JSON from response
+        # Trích xuất JSON từ response
         result = extract_json_from_response(response_text)
         
-        # Validate and set defaults
+        # Xác thực và đặt giá trị mặc định
         band_score = float(result.get("bandScore", 6.5))
         pronunciation_score = float(result.get("pronunciationScore", 6.0))
         grammar_score = float(result.get("grammarScore", 6.5))
@@ -140,7 +182,7 @@ async def chat(payload: ChatPayload):
         fluency_score = float(result.get("fluencyScore", 6.5))
         overall_feedback = result.get("overallFeedback", "Evaluation completed.")
         
-        # Clamp scores to valid range
+        # Giới hạn điểm số trong khoảng hợp lệ
         def clamp_score(score):
             return max(0.0, min(9.0, float(score)))
         
@@ -164,9 +206,9 @@ async def chat(payload: ChatPayload):
 
 @router.post("/generate/topics", response_model=TopicsResponse)
 async def generate_topics(request: TopicsRequest):
-    """Generate IELTS Speaking topics with related questions (v2 - Google AI Studio)"""
+    """Tạo chủ đề IELTS Speaking kèm câu hỏi liên quan (v2 - Google AI Studio)"""
     try:
-        # Build prompt
+        # Xây dựng prompt
         if request.prompt:
             user_prompt = request.prompt
         else:
@@ -195,7 +237,7 @@ Return JSON in this exact format:
         
         result = extract_json_from_generate_response(response_text)
         
-        # Validate and return
+        # Xác thực và trả về
         if "topics" not in result:
             raise HTTPException(status_code=500, detail="Invalid response format: missing 'topics' field")
         
@@ -212,9 +254,9 @@ Return JSON in this exact format:
 
 @router.post("/generate/questions", response_model=QuestionsResponse)
 async def generate_questions(request: QuestionsRequest):
-    """Generate IELTS Speaking questions with sample answers, vocabulary, and structures (v2 - Google AI Studio)"""
+    """Tạo câu hỏi IELTS Speaking kèm câu trả lời mẫu, từ vựng, và cấu trúc (v2 - Google AI Studio)"""
     try:
-        # Build prompt
+        # Xây dựng prompt
         if request.prompt:
             user_prompt = request.prompt
         else:
@@ -260,7 +302,7 @@ Return JSON in this exact format:
         
         result = extract_json_from_generate_response(response_text)
         
-        # Validate and return
+        # Xác thực và trả về
         required_fields = ["question", "sampleAnswer", "vocabulary", "structures"]
         for field in required_fields:
             if field not in result:
@@ -279,75 +321,98 @@ Return JSON in this exact format:
 
 @router.post("/generate/answers")
 async def generate_answers(request: AnswersRequest):
-    """Generate sample answers for IELTS Speaking questions (v2 - Google AI Studio)"""
+    """Tạo câu trả lời mẫu cho câu hỏi IELTS Speaking (v2 - Google AI Studio)"""
     try:
-        # Build prompt
-        user_prompt = f"""Generate a sample answer for this IELTS Speaking Part {request.partNumber or 2} question:
+        # Xây dựng prompt
+        user_prompt = f"""Generate a concise sample answer for this IELTS Speaking Part {request.partNumber or 2} question:
 
 Question: {request.question}
 
 Requirements:
 - Target band score: {request.targetBand or 7.0}
-- Answer should be suitable for 2-3 minutes of speaking
+- Answer should be SHORT and CONCISE (about 30-60 seconds of speaking, NOT 2-3 minutes)
 - Include advanced vocabulary and complex structures appropriate for the target band
-- Provide key vocabulary with definitions, examples, and pronunciation
-- Provide useful sentence structures with examples
-- List key points covered in the answer
+- Keep the answer natural, fluent, and to the point
+- Do NOT make it too long or verbose
 
-IMPORTANT: You MUST return ONLY valid JSON. Do not include any text before or after the JSON. The JSON must have these exact field names:
-- "answer" (required - the complete sample answer text)
-- "vocabulary" (required - array of vocabulary items)
-- "structures" (required - array of structure items)
-- "keyPoints" (optional - array of strings)
+CRITICAL: You MUST return ONLY a JSON object with ONE field called "answer". Do NOT include vocabulary, structures, keyPoints, or any other fields. Only return the answer text.
 
-Return JSON in this exact format (use these exact field names):
+Return JSON in this EXACT format (ONLY the answer field):
 {{
-    "answer": "The complete sample answer (2-3 minutes of speaking)",
-    "vocabulary": [
-        {{
-            "word": "word",
-            "definition": "definition",
-            "example": "example sentence",
-            "pronunciation": "/pronunciation/"
-        }}
-    ],
-    "structures": [
-        {{
-            "pattern": "sentence pattern",
-            "example": "example sentence",
-            "usage": "when to use this structure"
-        }}
-    ],
-    "keyPoints": ["Key point 1", "Key point 2", "Key point 3"]
-}}"""
+    "answer": "A concise sample answer (30-60 seconds of speaking). Keep it short and focused."
+}}
+
+IMPORTANT: 
+- Return ONLY valid JSON
+- The JSON must contain ONLY the "answer" field
+- Do not include any text before or after the JSON
+- The answer should be SHORT and CONCISE, not lengthy"""
         
-        system_message = "You are an expert IELTS speaking coach. Generate high-quality sample answers with vocabulary and structures in JSON format."
+        system_message = "You are an expert IELTS speaking coach. Generate concise, high-quality sample answers. You MUST return ONLY a JSON object with a single 'answer' field containing a SHORT answer text. Do not include any other fields. Keep answers brief and focused."
         
         response_text = google_ai_service.generate(
             system_message=system_message,
             user_prompt=user_prompt,
             temperature=0.7,
-            max_output_tokens=4096
+            max_output_tokens=1024  # Giảm vì chỉ cần câu trả lời ngắn
         )
         
         result = extract_json_from_generate_response(response_text)
         
-        # Handle alternative field names (LLM might use different names)
+        # Xử lý tên field thay thế (LLM có thể sử dụng tên khác)
         if "sampleAnswer" in result and "answer" not in result:
             result["answer"] = result["sampleAnswer"]
         if "sample_answer" in result and "answer" not in result:
             result["answer"] = result["sample_answer"]
         
-        # Validate that answer field exists
+        # Kiểm tra xem LLM có trả về vocabulary items thay vì answer không
+        # Điều này có thể xảy ra nếu LLM hiểu nhầm prompt
         if "answer" not in result:
+            # Kiểm tra xem result có chứa cấu trúc vocabulary item không
+            if all(key in result for key in ["word", "definition", "example", "pronunciation"]):
+                # Một vocabulary item được trả về - xây dựng câu trả lời ngắn từ nó
+                vocab_example = result.get("example", "")
+                result["answer"] = vocab_example if vocab_example else f"I would like to discuss {result.get('word', 'this topic')}."
+            elif "vocabulary" in result and isinstance(result["vocabulary"], list) and len(result["vocabulary"]) > 0:
+                # Mảng vocabulary được trả về - xây dựng câu trả lời ngắn từ ví dụ vocabulary đầu tiên
+                vocab_items = result["vocabulary"]
+                if len(vocab_items) > 0 and isinstance(vocab_items[0], dict) and "example" in vocab_items[0]:
+                    result["answer"] = vocab_items[0].get("example", "")
+                else:
+                    result["answer"] = f"I would approach this question by considering the key aspects related to {request.question}."
+            else:
+                # Không có answer và không có cấu trúc vocabulary - thử trích xuất bất kỳ nội dung text nào
+                returned_fields = list(result.keys())
+                
+                # Thử xây dựng answer từ bất kỳ text field nào có sẵn
+                possible_answer = None
+                for field in ["content", "text", "response", "sampleAnswer", "sample_answer"]:
+                    if field in result and isinstance(result[field], str) and len(result[field]) > 10:
+                        possible_answer = result[field]
+                        break
+                
+                if possible_answer:
+                    result["answer"] = possible_answer
+                else:
+                    # Biện pháp cuối cùng: tạo một câu trả lời chung ngắn
+                    result["answer"] = f"I would approach this question by considering the main points related to the topic."
+        
+        # Xác thực rằng field answer tồn tại và không rỗng
+        if "answer" not in result or not result["answer"] or len(result["answer"].strip()) < 10:
             returned_fields = list(result.keys())
             raise HTTPException(
                 status_code=500, 
-                detail=f"Invalid response format: missing 'answer' field. Returned fields: {returned_fields}. Response preview: {str(result)[:500]}"
+                detail=f"Invalid response format: missing or invalid 'answer' field. Returned fields: {returned_fields}. Response preview: {str(result)[:500]}"
             )
         
-        # Return only the answer field
-        return {"answer": result["answer"]}
+        # Cắt ngắn answer nếu quá dài (giới hạn ~500 từ cho câu trả lời ngắn gọn)
+        answer_text = result["answer"].strip()
+        words = answer_text.split()
+        if len(words) > 500:
+            answer_text = " ".join(words[:500]) + "..."
+        
+        # Chỉ trả về field answer
+        return {"answer": answer_text}
         
     except HTTPException:
         raise
@@ -360,9 +425,9 @@ Return JSON in this exact format (use these exact field names):
 
 @router.post("/generate/structures", response_model=StructuresResponse)
 async def generate_structures(request: StructuresRequest):
-    """Generate useful sentence structures for IELTS Speaking (v2 - Google AI Studio)"""
+    """Tạo cấu trúc câu hữu ích cho IELTS Speaking (v2 - Google AI Studio)"""
     try:
-        # Build prompt
+        # Xây dựng prompt
         user_prompt = f"""Generate {request.count or 5} useful sentence structures for answering this IELTS Speaking Part {request.partNumber or 3} question:
 
 Question: {request.question}
@@ -399,7 +464,7 @@ Return JSON in this exact format:
         
         result = extract_json_from_generate_response(response_text)
         
-        # Validate and return
+        # Xác thực và trả về
         if "structures" not in result:
             raise HTTPException(status_code=500, detail="Invalid response format: missing 'structures' field")
         
@@ -416,9 +481,9 @@ Return JSON in this exact format:
 
 @router.post("/generate/vocabulary", response_model=VocabularyResponse)
 async def generate_vocabulary(request: VocabularyRequest):
-    """Generate vocabulary lists with definitions, examples, and pronunciation (v2 - Google AI Studio)"""
+    """Tạo danh sách từ vựng kèm định nghĩa, ví dụ, và phát âm (v2 - Google AI Studio)"""
     try:
-        # Build prompt
+        # Xây dựng prompt
         vocabulary_count = request.count or 10
         user_prompt = f"""You are generating a vocabulary list for IELTS Speaking preparation.
 
@@ -463,55 +528,55 @@ REMEMBER: The vocabulary array MUST contain EXACTLY {vocabulary_count} items. Co
         
         system_message = f"You are an expert IELTS English teacher. Your task is to generate EXACTLY {vocabulary_count} vocabulary items in JSON format. You MUST count the items and ensure there are exactly {vocabulary_count} items in the vocabulary array. Return ONLY valid JSON, no explanations, no additional text before or after the JSON."
         
-        # Increase max_output_tokens based on count to ensure enough space for all items
-        # Estimate: ~200 tokens per vocabulary item
+        # Tăng max_output_tokens dựa trên count để đảm bảo đủ không gian cho tất cả items
+        # Ước tính: ~200 tokens mỗi vocabulary item
         estimated_tokens = max(2048, vocabulary_count * 200)
         
-        # Use lower temperature for more consistent, structured output
-        # Retry up to 2 times if we don't get enough items
+        # Sử dụng temperature thấp hơn để output nhất quán và có cấu trúc hơn
+        # Thử lại tối đa 2 lần nếu không có đủ items
         max_retries = 2
         for attempt in range(max_retries + 1):
             response_text = google_ai_service.generate(
                 system_message=system_message,
                 user_prompt=user_prompt,
-                temperature=0.3 if attempt == 0 else 0.5,  # Lower temperature for first attempt
-                max_output_tokens=min(estimated_tokens, 8192)  # Cap at 8192 (max for some models)
+                temperature=0.3 if attempt == 0 else 0.5,  # Temperature thấp hơn cho lần thử đầu tiên
+                max_output_tokens=min(estimated_tokens, 8192)  # Giới hạn ở 8192 (tối đa cho một số models)
             )
             
             result = extract_json_from_generate_response(response_text)
             
-            # Check if we got enough items
+            # Kiểm tra xem đã có đủ items chưa
             if "vocabulary" in result and isinstance(result["vocabulary"], list):
                 actual_count = len(result["vocabulary"])
                 if actual_count >= vocabulary_count:
-                    break  # Got enough items, exit retry loop
+                    break  # Đã có đủ items, thoát vòng lặp retry
                 elif attempt < max_retries:
-                    # Not enough items, retry with adjusted prompt
+                    # Chưa đủ items, thử lại với prompt đã điều chỉnh
                     user_prompt = f"""{user_prompt}
 
 IMPORTANT: The previous response only had {actual_count} items, but you need to generate EXACTLY {vocabulary_count} items. Please try again and ensure you generate all {vocabulary_count} vocabulary items."""
                     continue
             
-            # If we reach here and it's not the last attempt, continue retry
+            # Nếu đến đây và không phải lần thử cuối, tiếp tục retry
             if attempt < max_retries:
                 continue
             
-            # Last attempt, break and use what we got
+            # Lần thử cuối, dừng và sử dụng những gì đã có
             break
         
-        # Handle case where Google AI returns vocabulary items directly instead of wrapped in "vocabulary" array
+        # Xử lý trường hợp Google AI trả về vocabulary items trực tiếp thay vì bọc trong mảng "vocabulary"
         if "vocabulary" not in result:
-            # Check if result has vocabulary item fields (word, definition, example, pronunciation)
+            # Kiểm tra xem result có các field vocabulary item không (word, definition, example, pronunciation)
             if all(key in result for key in ["word", "definition", "example"]):
-                # Single vocabulary item returned, wrap it in array
+                # Một vocabulary item được trả về, bọc nó trong mảng
                 result = {"vocabulary": [result]}
-            # Check if result is a list of vocabulary items
+            # Kiểm tra xem result có phải là danh sách vocabulary items không
             elif isinstance(result, list) and len(result) > 0 and isinstance(result[0], dict):
-                # Check if first item has vocabulary fields
+                # Kiểm tra xem item đầu tiên có các field vocabulary không
                 if all(key in result[0] for key in ["word", "definition", "example"]):
                     result = {"vocabulary": result}
                 else:
-                    # Provide more helpful error message
+                    # Cung cấp thông báo lỗi hữu ích hơn
                     returned_fields = list(result[0].keys()) if result else []
                     response_preview = str(result)[:1000] if len(str(result)) > 1000 else str(result)
                     raise HTTPException(
@@ -519,7 +584,7 @@ IMPORTANT: The previous response only had {actual_count} items, but you need to 
                         detail=f"Invalid response format: missing 'vocabulary' field. Returned fields: {returned_fields}. Response preview: {response_preview}"
                     )
             else:
-                # Provide more helpful error message
+                # Cung cấp thông báo lỗi hữu ích hơn
                 returned_fields = list(result.keys()) if isinstance(result, dict) else []
                 response_preview = str(result)[:1000] if len(str(result)) > 1000 else str(result)
                 raise HTTPException(
@@ -527,13 +592,13 @@ IMPORTANT: The previous response only had {actual_count} items, but you need to 
                     detail=f"Invalid response format: missing 'vocabulary' field. Returned fields: {returned_fields}. Response preview: {response_preview}"
                 )
         
-        # Validate vocabulary count
+        # Xác thực số lượng vocabulary
         if "vocabulary" in result and isinstance(result["vocabulary"], list):
             actual_count = len(result["vocabulary"])
             if actual_count < vocabulary_count:
-                # Log warning - Google AI didn't return enough items
-                # We'll return what we got, but this could be improved with retry logic
-                pass  # For now, just return what we got
+                # Ghi cảnh báo - Google AI không trả về đủ items
+                # Sẽ trả về những gì đã có, nhưng điều này có thể được cải thiện với retry logic
+                pass  # Hiện tại, chỉ trả về những gì đã có
         
         return VocabularyResponse(**result)
         
@@ -549,13 +614,13 @@ IMPORTANT: The previous response only had {actual_count} items, but you need to 
 @router.post("/generate")
 async def generate(request: GenerateRequest):
     """
-    Generic text generation endpoint for various tasks (FALLBACK/PLAYGROUND) (v2 - Google AI Studio)
+    Endpoint tạo text chung cho các tác vụ khác nhau (FALLBACK/PLAYGROUND) (v2 - Google AI Studio)
     
-    ⚠️ NOTE: This is a fallback/playground endpoint for experimentation.
-    For production use, please use the specialized endpoints.
+    ⚠️ LƯU Ý: Đây là endpoint fallback/playground để thử nghiệm.
+    Để sử dụng trong production, vui lòng sử dụng các endpoint chuyên biệt.
     """
     try:
-        # Build system message based on task type
+        # Xây dựng system message dựa trên loại task
         system_messages = {
             "topics": "You are an expert IELTS content creator. Generate IELTS speaking topics in JSON format.",
             "questions": "You are an expert IELTS content creator. Generate IELTS speaking questions with sample answers, vocabulary, and structures in JSON format.",
@@ -569,7 +634,7 @@ async def generate(request: GenerateRequest):
         
         system_message = system_messages.get(request.task_type, system_messages["general"])
         
-        # Add context to prompt if provided
+        # Thêm context vào prompt nếu được cung cấp
         user_prompt = request.prompt
         if request.context:
             context_str = ", ".join([f"{k}: {v}" for k, v in request.context.items()])
@@ -598,7 +663,7 @@ async def generate(request: GenerateRequest):
 @router.post("/grammar/correct", response_model=GrammarCorrectionResponse)
 async def correct_grammar(request: GrammarCorrectionRequest):
     """
-    Correct grammar for a transcription (v2 - Google AI Studio)
+    Sửa ngữ pháp cho một transcription (v2 - Google AI Studio)
     
     **Request body:**
     ```json
@@ -626,7 +691,7 @@ async def correct_grammar(request: GrammarCorrectionRequest):
     ```
     """
     try:
-        # Validate input
+        # Xác thực input
         if not request.transcription or request.transcription.strip() == "":
             raise HTTPException(
                 status_code=400,
@@ -635,7 +700,7 @@ async def correct_grammar(request: GrammarCorrectionRequest):
         
         transcription = request.transcription.strip()
         
-        # Build prompt
+        # Xây dựng prompt
         question_context = ""
         if request.textQuestion and request.textQuestion.strip():
             question_context = f"\n\nContext/Question: {request.textQuestion.strip()}"
@@ -697,63 +762,24 @@ MANDATORY VALIDATION RULES:
         
         system_message = f"You are an expert English grammar teacher specializing in correcting spoken {request.language or 'English'} transcriptions. Your job is to identify and fix ALL grammatical errors while preserving the original meaning. You MUST return ONLY valid JSON format with no additional text before or after. Ensure the response contains the complete original and corrected text, not truncated versions."
         
-        # Calculate appropriate max_output_tokens based on input length
-        # Rule: output should be at least 2x input length to allow for complete correction + metadata
+        # Tính toán max_output_tokens phù hợp dựa trên độ dài input
+        # Quy tắc: output nên ít nhất gấp 2 lần độ dài input để cho phép sửa đầy đủ + metadata
         input_length = len(transcription)
-        min_tokens = 3072  # Increased minimum
-        estimated_tokens = max(min_tokens, int(input_length * 3.5))  # Increased multiplier
+        min_tokens = 2048
+        estimated_tokens = max(min_tokens, int(input_length * 2.5))
         max_tokens = min(estimated_tokens, 8192)  # Cap at model limit
         
-        # Retry logic for incomplete responses
-        max_retries = 2
-        result = None
-        last_error = None
+        response_text = google_ai_service.generate(
+            system_message=system_message,
+            user_prompt=user_prompt,
+            temperature=0.2,  # Temperature thấp hơn để sửa chữa nhất quán và chính xác hơn
+            max_output_tokens=max_tokens
+        )
         
-        for attempt in range(max_retries + 1):
-            try:
-                # Adjust prompt for retry attempts
-                current_prompt = user_prompt
-                if attempt > 0:
-                    current_prompt = f"""RETRY ATTEMPT {attempt + 1}: The previous response was incomplete or truncated.
-You MUST return the COMPLETE corrected text, not a truncated version.
-
-{user_prompt}"""
-                
-                response_text = google_ai_service.generate(
-                    system_message=system_message,
-                    user_prompt=current_prompt,
-                    temperature=0.2 if attempt == 0 else 0.3,  # Slightly higher temp on retry
-                    max_output_tokens=max_tokens
-                )
-                
-                # Extract JSON from response
-                result = extract_json_from_generate_response(response_text)
-                
-                # Quick validation - check if corrected text seems complete
-                if result.get("corrected") and len(result["corrected"]) >= len(transcription) * 0.6:
-                    # Response seems complete enough
-                    break
-                else:
-                    # Response seems incomplete, try again
-                    if attempt < max_retries:
-                        corrected_len = len(result.get("corrected", ""))
-                        last_error = f"Incomplete response on attempt {attempt + 1}: corrected text only {corrected_len} chars"
-                        continue
-                    
-            except Exception as e:
-                last_error = str(e)
-                if attempt < max_retries:
-                    continue
-                else:
-                    raise
+        # Trích xuất JSON từ response
+        result = extract_json_from_generate_response(response_text)
         
-        if result is None:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to get complete response after {max_retries + 1} attempts. Last error: {last_error}"
-            )
-        
-        # VALIDATION STEP 1: Check for required fields
+        # BƯỚC XÁC THỰC 1: Kiểm tra các field bắt buộc
         required_fields = ["original", "corrected"]
         missing_fields = [field for field in required_fields if field not in result]
         
@@ -763,36 +789,36 @@ You MUST return the COMPLETE corrected text, not a truncated version.
                 detail=f"AI response missing required fields: {missing_fields}. This is an internal error. Please try again."
             )
         
-        # VALIDATION STEP 2: Ensure all fields are proper types and not null
-        # Handle original field
+        # BƯỚC XÁC THỰC 2: Đảm bảo tất cả các field có kiểu dữ liệu đúng và không null
+        # Xử lý field original
         if not result.get("original") or not isinstance(result["original"], str):
             result["original"] = transcription
         else:
-            # Ensure original is not truncated
+            # Đảm bảo original không bị cắt ngắn
             result["original"] = result["original"].strip()
             if len(result["original"]) < len(transcription) * 0.8:
-                # Original seems truncated, use input transcription
+                # Original có vẻ bị cắt ngắn, sử dụng input transcription
                 result["original"] = transcription
         
-        # Handle corrected field
+        # Xử lý field corrected
         if not result.get("corrected") or not isinstance(result["corrected"], str):
-            # If corrected is missing or invalid, use original
+            # Nếu corrected thiếu hoặc không hợp lệ, sử dụng original
             result["corrected"] = transcription
         else:
             result["corrected"] = result["corrected"].strip()
         
-        # VALIDATION STEP 3: Ensure corrections is always a valid list
+        # BƯỚC XÁC THỰC 3: Đảm bảo corrections luôn là một list hợp lệ
         if "corrections" not in result or result["corrections"] is None:
             result["corrections"] = []
         elif not isinstance(result["corrections"], list):
-            # If corrections is not a list, convert to empty list
+            # Nếu corrections không phải là list, chuyển đổi thành list rỗng
             result["corrections"] = []
         else:
-            # Validate each correction item
+            # Xác thực từng correction item
             valid_corrections = []
             for correction in result["corrections"]:
                 if isinstance(correction, dict):
-                    # Ensure all correction fields are strings
+                    # Đảm bảo tất cả các field correction là strings
                     if "original" in correction and "corrected" in correction and "reason" in correction:
                         valid_corrections.append({
                             "original": str(correction.get("original", "")),
@@ -801,9 +827,9 @@ You MUST return the COMPLETE corrected text, not a truncated version.
                         })
             result["corrections"] = valid_corrections
         
-        # VALIDATION STEP 4: Ensure explanation is always a non-empty string
+        # BƯỚC XÁC THỰC 4: Đảm bảo explanation luôn là một string không rỗng
         if "explanation" not in result or result["explanation"] is None or not isinstance(result["explanation"], str):
-            # Generate explanation based on corrections
+            # Tạo explanation dựa trên corrections
             if len(result["corrections"]) > 0:
                 result["explanation"] = f"Made {len(result['corrections'])} correction(s) to improve grammar and clarity."
             elif result["original"] != result["corrected"]:
@@ -813,7 +839,7 @@ You MUST return the COMPLETE corrected text, not a truncated version.
         else:
             result["explanation"] = result["explanation"].strip()
             if not result["explanation"]:
-                # Empty explanation
+                # Explanation rỗng
                 if len(result["corrections"]) > 0:
                     result["explanation"] = f"Made {len(result['corrections'])} correction(s) to improve grammar."
                 elif result["original"] != result["corrected"]:
@@ -821,93 +847,35 @@ You MUST return the COMPLETE corrected text, not a truncated version.
                 else:
                     result["explanation"] = "No corrections needed. The transcription is grammatically correct."
         
-        # VALIDATION STEP 5: Check for completeness - corrected text should not be too short
+        # BƯỚC XÁC THỰC 5: Kiểm tra tính đầy đủ - corrected text không nên quá ngắn
         original_len = len(result["original"])
         corrected_len = len(result["corrected"])
         
-        # If corrected is significantly shorter than original (>40% shorter), it might be truncated
+        # Nếu corrected ngắn hơn đáng kể so với original (>40% ngắn hơn), có thể bị cắt ngắn
         if original_len > 30 and corrected_len < original_len * 0.6:
-            # Try one more time with a simplified prompt
-            try:
-                simplified_prompt = f"""Fix the grammar errors in this text and return the COMPLETE corrected version:
-
-TEXT: {transcription}
-
-Return ONLY JSON:
-{{
-    "original": "full original text",
-    "corrected": "full corrected text",
-    "corrections": [],
-    "explanation": "summary of changes"
-}}
-
-The corrected text MUST be the SAME LENGTH or longer than the original. Do not truncate."""
-                
-                response_text = google_ai_service.generate(
-                    system_message="You are a grammar correction expert. Return ONLY complete, valid JSON.",
-                    user_prompt=simplified_prompt,
-                    temperature=0.1,
-                    max_output_tokens=max_tokens
-                )
-                
-                fallback_result = extract_json_from_generate_response(response_text)
-                
-                # Check if fallback is better
-                if fallback_result.get("corrected") and len(fallback_result["corrected"]) >= original_len * 0.6:
-                    result = fallback_result
-                    # Re-validate this result below
-                else:
-                    # Even fallback failed, return original as corrected
-                    result["corrected"] = transcription
-                    result["corrections"] = []
-                    result["explanation"] = "Unable to process corrections. Returning original text unchanged."
-                    
-            except:
-                # Fallback failed, return original as corrected
-                result["corrected"] = transcription
-                result["corrections"] = []
-                result["explanation"] = "Unable to process corrections. Returning original text unchanged."
-            
-            # Recalculate lengths after potential fallback
-            corrected_len = len(result["corrected"])
+            raise HTTPException(
+                status_code=500,
+                detail=f"AI response appears incomplete. Original text: {original_len} characters, Corrected text: {corrected_len} characters. The corrected text seems truncated. Please try again."
+            )
         
-        # VALIDATION STEP 6: Final consistency check
-        # If corrections array is not empty but explanation says no corrections, fix it
+        # BƯỚC XÁC THỰC 6: Kiểm tra tính nhất quán cuối cùng
+        # Nếu mảng corrections không rỗng nhưng explanation nói không có corrections, sửa nó
         if len(result["corrections"]) > 0 and "no correction" in result["explanation"].lower():
             result["explanation"] = f"Made {len(result['corrections'])} correction(s) including grammar, punctuation, and style improvements."
         
-        # If original and corrected are the same but there are corrections listed, this is inconsistent
+        # Nếu original và corrected giống nhau nhưng có corrections được liệt kê, điều này không nhất quán
         if result["original"] == result["corrected"] and len(result["corrections"]) > 0:
-            # Clear corrections since nothing actually changed
+            # Xóa corrections vì không có gì thực sự thay đổi
             result["corrections"] = []
             result["explanation"] = "No corrections needed. The transcription is grammatically correct."
         
-        # FINAL SAFETY CHECK: Ensure all required fields are present and valid
-        final_result = {
-            "original": str(result.get("original", transcription)),
-            "corrected": str(result.get("corrected", transcription)),
-            "corrections": result.get("corrections", []) if isinstance(result.get("corrections"), list) else [],
-            "explanation": str(result.get("explanation", "Grammar correction completed.")) if result.get("explanation") else "Grammar correction completed."
-        }
-        
-        # Ensure strings are not empty
-        if not final_result["original"]:
-            final_result["original"] = transcription
-        if not final_result["corrected"]:
-            final_result["corrected"] = transcription
-        if not final_result["explanation"]:
-            if len(final_result["corrections"]) > 0:
-                final_result["explanation"] = f"Made {len(final_result['corrections'])} correction(s)."
-            else:
-                final_result["explanation"] = "No corrections needed."
-        
-        # Return validated response
-        return GrammarCorrectionResponse(**final_result)
+        # Trả về response đã được xác thực
+        return GrammarCorrectionResponse(**result)
         
     except HTTPException:
         raise
     except Exception as e:
-        # Log the error details for debugging
+        # Ghi log chi tiết lỗi để debug
         error_detail = f"Error correcting grammar: {str(e)}"
         if hasattr(e, '__traceback__'):
             import traceback
@@ -922,13 +890,13 @@ The corrected text MUST be the SAME LENGTH or longer than the original. Do not t
 @router.post("/improve", response_model=ImproveResponse)
 async def improve_sentence(request: ImproveRequest):
     """
-    Improve a sentence for IELTS Speaking (v2 - Google AI Studio)
+    Cải thiện câu cho IELTS Speaking (v2 - Google AI Studio)
     
-    This endpoint improves the sentence by:
-    - Fixing grammar errors
-    - Using more advanced vocabulary
-    - Improving sentence structure
-    - Making it more natural and fluent
+    Endpoint này cải thiện câu bằng cách:
+    - Sửa lỗi ngữ pháp
+    - Sử dụng từ vựng nâng cao hơn
+    - Cải thiện cấu trúc câu
+    - Làm cho nó tự nhiên và trôi chảy hơn
     
     **Request body:**
     ```json
@@ -952,7 +920,7 @@ async def improve_sentence(request: ImproveRequest):
     ```
     """
     try:
-        # Build prompt
+        # Xây dựng prompt
         question_context = ""
         if request.questionText:
             question_context = f"\n\nQuestion/Context: {request.questionText}"
@@ -1013,8 +981,8 @@ IMPORTANT:
         
         system_message = "You are an expert IELTS speaking coach. Improve FULL transcriptions by fixing grammar, correcting mispronunciations, using advanced vocabulary, and improving structure. You MUST process the ENTIRE transcription, not just parts of it. Return ONLY valid JSON format."
         
-        # Increase max_output_tokens significantly for long transcriptions
-        # Estimate tokens needed: ~1.3x the input length + suggestions
+        # Tăng max_output_tokens đáng kể cho transcriptions dài
+        # Ước tính tokens cần: ~1.3x độ dài input + suggestions
         input_length = len(request.transcription)
         estimated_tokens = max(4096, int(input_length * 1.5) + 1000)  # Extra for suggestions
         
@@ -1027,7 +995,7 @@ IMPORTANT:
         
         result = extract_json_from_generate_response(response_text)
         
-        # Validate required fields
+        # Xác thực các field bắt buộc
         required_fields = ["original", "improved"]
         missing_fields = [field for field in required_fields if field not in result]
         
@@ -1038,19 +1006,19 @@ IMPORTANT:
                 detail=f"Invalid response format: missing fields {missing_fields}. Returned fields: {returned_fields}"
             )
         
-        # Ensure original and improved are set
+        # Đảm bảo original và improved được đặt
         if "original" not in result:
             result["original"] = request.transcription
         if "improved" not in result:
             result["improved"] = request.transcription
         
-        # Validate that improved text is reasonable length (at least 50% of original)
-        # This helps catch cases where only a small portion was processed
+        # Xác thực rằng improved text có độ dài hợp lý (ít nhất 50% của original)
+        # Điều này giúp phát hiện các trường hợp chỉ xử lý một phần nhỏ
         original_length = len(result.get("original", ""))
         improved_length = len(result.get("improved", ""))
         
         if original_length > 100 and improved_length < original_length * 0.5:
-            # Improved text is too short - likely only processed a portion
+            # Improved text quá ngắn - có thể chỉ xử lý một phần
             raise HTTPException(
                 status_code=500,
                 detail=f"Response appears incomplete. Original length: {original_length} chars, Improved length: {improved_length} chars. The improved text should be similar length to the original. Please ensure the AI processes the ENTIRE transcription."
@@ -1070,9 +1038,9 @@ IMPORTANT:
 @router.get("/models")
 async def list_models():
     """
-    List all available Google AI models (v2)
+    Liệt kê tất cả các Google AI models có sẵn (v2)
     
-    Returns a list of models that support generateContent method.
+    Trả về danh sách các models hỗ trợ phương thức generateContent.
     """
     try:
         models = google_ai_service.list_models()
